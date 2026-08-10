@@ -1,0 +1,25 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build & PyInstaller outputs
+build/
+dist/
+*.spec
+
+# Environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs & System
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
