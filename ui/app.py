@@ -329,6 +329,9 @@ class SerialDetectorApp:
             self.combo_mode.current(0)
             self.btn_start.config(text=i18n.t('btn_stop') if self.engine.is_running() else i18n.t('btn_start'))
 
+        # 刷新串口下拉框显示（防止“未检测到有效串口”保持旧语言）
+        self.refresh_ports(silent_log=True)
+
         # 刷新表格标题
         self.tree.heading("score", text=i18n.t('table_score'))
         self.tree.heading("param", text=i18n.t('table_param'))
@@ -337,7 +340,6 @@ class SerialDetectorApp:
         self.tree.heading("ascii_ratio", text=i18n.t('table_ascii_ratio'))
         self.tree.heading("details", text=i18n.t('table_details'))
 
-        # 重新刷新已保存表格项的 details 语言
         for item in self.tree.get_children():
             self.tree.delete(item)
 
@@ -355,7 +357,6 @@ class SerialDetectorApp:
                 )
             )
 
-        # 刷新推荐卡片文案
         if not self.results_data:
             if HAS_CTK:
                 self.lbl_best_title.configure(text=i18n.t('best_card_title_default'))
@@ -366,7 +367,7 @@ class SerialDetectorApp:
         else:
             self._update_best_card()
 
-    def refresh_ports(self):
+    def refresh_ports(self, silent_log: bool = False):
         ports_list = get_available_ports()
         if not ports_list:
             display_values = [i18n.t('no_port_warning')]
@@ -381,7 +382,8 @@ class SerialDetectorApp:
             if display_values:
                 self.combo_ports.current(0)
 
-        self.log(i18n.t('log_refresh_ports', count=len(ports_list)))
+        if not silent_log:
+            self.log(i18n.t('log_refresh_ports', count=len(ports_list)))
 
     def toggle_detection(self):
         if self.engine.is_running():
@@ -390,7 +392,7 @@ class SerialDetectorApp:
             return
 
         port_str = self.combo_ports.get()
-        if not port_str or i18n.t('no_port_warning') in port_str or "未检测到" in port_str:
+        if not port_str or port_str in (i18n.t('no_port_warning'), "未检测到有效串口", "No valid serial ports found"):
             messagebox.showwarning("Warning", i18n.t('warn_select_port'))
             return
 
