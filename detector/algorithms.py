@@ -1,6 +1,7 @@
 import math
 import re
 from typing import Dict, Any
+from .i18n import i18n
 
 def crc16_modbus(data: bytes) -> int:
     """计算 Modbus RTU CRC16 校验码"""
@@ -20,13 +21,10 @@ def check_modbus_rtu_frame(data: bytes) -> bool:
     if len(data) < 4:
         return False
     
-    # 扫描数据流寻找可能的 Modbus 帧
     for i in range(len(data) - 3):
-        # slave id 通常 1-247
         slave_id = data[i]
         func_code = data[i+1]
         if (1 <= slave_id <= 247) and (func_code in [1, 2, 3, 4, 5, 6, 15, 16, 0x81, 0x83]):
-            # 尝试不同长度的校验
             for frame_len in range(4, min(256, len(data) - i + 1)):
                 sub = data[i:i+frame_len]
                 if len(sub) >= 4:
@@ -52,7 +50,6 @@ def calculate_ascii_score(data: bytes) -> float:
     for byte in data:
         if byte in (0x00, 0xFF):
             zero_or_ff_count += 1
-        # 0x20-0x7E 为可打印字符, 0x09(\t), 0x0A(\n), 0x0D(\r) 为合法控制字符
         if 0x20 <= byte <= 0x7E or byte in (0x09, 0x0A, 0x0D):
             printable_count += 1
             
@@ -60,7 +57,6 @@ def calculate_ascii_score(data: bytes) -> float:
     printable_ratio = (printable_count / total) * 100.0
     zero_ratio = (zero_or_ff_count / total) * 100.0
     
-    # 如果全为 \x00 或 \xFF (噪音)，扣除得分
     if zero_ratio > 60:
         printable_ratio *= (1 - zero_ratio / 100)
         
@@ -87,13 +83,14 @@ def evaluate_data_payload(data: bytes) -> Dict[str, Any]:
             'score': 0.0,
             'protocol': 'No Data',
             'ascii_ratio': 0.0,
-            'details': '未接收到有效数据字节'
+            'details_key': 'detail_no_data',
+            'details_kwargs': {},
+            'details': i18n.t('detail_no_data')
         }
         
     ascii_score = calculate_ascii_score(data)
     is_modbus = check_modbus_rtu_frame(data)
     
-    # 尝试 UTF-8 或 GBK 解码文本 (仅当 ASCII 比率较高时)
     text_content = ""
     is_utf8 = False
     if ascii_score > 40.0:
@@ -109,40 +106,45 @@ def evaluate_data_payload(data: bytes) -> Dict[str, Any]:
     is_nmea = check_nmea_sentence(text_content) if text_content else False
     is_at_resp = bool(re.search(r'\b(OK|ERROR|READY|WIFI|CONNECTED|AT\+)\b', text_content, re.IGNORECASE)) if text_content else False
 
-    # 综合置信度逻辑
     final_score = ascii_score
     protocol_type = "Raw Data / Unknown"
-    details = f"ASCII可读率: {ascii_score}%"
+    details_key = "detail_ascii_ratio"
+    details_kwargs = {"ratio": ascii_score}
 
     if is_modbus:
         final_score = 100.0
         protocol_type = "Modbus RTU (CRC16 Valid)"
-        details = "通过 Modbus RTU 帧 CRC16 完整校验"
+        details_key = "detail_modbus"
+        details_kwargs = {}
         safe_str = bytes_to_safe_ascii(data[:64])
-        sample_text_display = f"[Modbus 二进制帧] {safe_str}"
+        sample_text_display = f"{i18n.t('sample_modbus_tag')} {safe_str}"
     elif is_nmea:
         final_score = 98.0
         protocol_type = "NMEA 0183 (GPS)"
-        details = "匹配到 NMEA0183 规整语句结构"
+        details_key = "detail_nmea"
+        details_kwargs = {}
         sample_text_display = text_content[:128].replace('\r', '\\r').replace('\n', '\\n') if text_content else bytes_to_safe_ascii(data[:64])
     elif is_at_resp:
         final_score = max(ascii_score, 90.0)
         protocol_type = "AT Command Response"
-        details = "匹配到 AT 指令典型响应关键词 (OK/ERROR)"
+        details_key = "detail_at"
+        details_kwargs = {}
         sample_text_display = text_content[:128].replace('\r', '\\r').replace('\n', '\\n') if text_content else bytes_to_safe_ascii(data[:64])
     elif is_utf8 and ascii_score > 85.0:
         protocol_type = "ASCII Text"
-        details = "高可读性 UTF-8 文本流"
+        details_key = "detail_ascii"
+        details_kwargs = {}
         sample_text_display = text_content[:128].replace('\r', '\\r').replace('\n', '\\n')
     else:
-        sample_text_display = f"[二进制/非纯文本] {bytes_to_safe_ascii(data[:64])}"
+        sample_text_display = f"{i18n.t('sample_binary_tag')} {bytes_to_safe_ascii(data[:64])}"
 
     return {
         'score': round(final_score, 1),
         'protocol': protocol_type,
         'ascii_ratio': ascii_score,
-        'details': details,
+        'details_key': details_key,
+        'details_kwargs': details_kwargs,
+        'details': i18n.t(details_key, **details_kwargs),
         'sample_hex': data[:64].hex(' ').upper(),
         'sample_text': sample_text_display
     }
-

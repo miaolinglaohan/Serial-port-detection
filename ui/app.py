@@ -15,7 +15,7 @@ from detector.engine import DetectionEngine
 from detector.i18n import i18n, LANGUAGES
 
 class SerialDetectorApp:
-    """串口黑盒探测小工具 GUI 主界面 (支持中/英多语言)"""
+    """串口黑盒探测小工具 GUI 主界面 (完全无死角中/英多语言)"""
 
     def __init__(self):
         self.engine = DetectionEngine()
@@ -52,7 +52,6 @@ class SerialDetectorApp:
             control_frame = ctk.CTkFrame(self.main_frame, corner_radius=8)
             control_frame.pack(fill="x", padx=10, pady=(10, 5))
             
-            # 串口选择
             self.lbl_port = ctk.CTkLabel(control_frame, text=i18n.t('select_port'), font=("Microsoft YaHei", 12, "bold"))
             self.lbl_port.pack(side="left", padx=(15, 5), pady=10)
             
@@ -62,7 +61,6 @@ class SerialDetectorApp:
             self.btn_refresh = ctk.CTkButton(control_frame, text=i18n.t('refresh'), width=70, command=self.refresh_ports)
             self.btn_refresh.pack(side="left", padx=5, pady=10)
             
-            # 模式选择器
             self.lbl_mode = ctk.CTkLabel(control_frame, text=i18n.t('detection_mode'), font=("Microsoft YaHei", 12, "bold"))
             self.lbl_mode.pack(side="left", padx=(15, 5), pady=10)
             
@@ -74,7 +72,6 @@ class SerialDetectorApp:
             self.combo_mode.set(i18n.t('mode_auto'))
             self.combo_mode.pack(side="left", padx=5, pady=10)
             
-            # 语言切换选择器
             self.combo_lang = ctk.CTkOptionMenu(
                 control_frame,
                 width=110,
@@ -84,7 +81,6 @@ class SerialDetectorApp:
             self.combo_lang.set(LANGUAGES['zh'])
             self.combo_lang.pack(side="left", padx=(15, 5), pady=10)
 
-            # 启动/停止按钮
             self.btn_start = ctk.CTkButton(
                 control_frame, 
                 text=i18n.t('btn_start'), 
@@ -120,7 +116,6 @@ class SerialDetectorApp:
             self.combo_mode.current(0)
             self.combo_mode.pack(side="left", padx=5)
 
-            # 语言切换
             self.combo_lang = ttk.Combobox(
                 control_frame,
                 values=list(LANGUAGES.values()),
@@ -139,7 +134,6 @@ class SerialDetectorApp:
             mid_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
             mid_frame.pack(fill="both", expand=True, padx=10, pady=5)
             
-            # 左侧参数配置区
             left_config = ctk.CTkFrame(mid_frame, width=250)
             left_config.pack(side="left", fill="y", padx=(0, 5), pady=5)
             
@@ -176,7 +170,6 @@ class SerialDetectorApp:
             self.slider_sample_time.set(0.3)
             self.slider_sample_time.pack(fill="x", padx=10, pady=5)
             
-            # 右侧展示区 (最佳卡片 + 表格)
             right_display = ctk.CTkFrame(mid_frame)
             right_display.pack(side="right", fill="both", expand=True, padx=(5, 0), pady=5)
             
@@ -295,7 +288,7 @@ class SerialDetectorApp:
         self.update_ui_language()
 
     def update_ui_language(self):
-        """刷新界面上所有组件的文案内容"""
+        """刷新界面上所有组件的文案内容，包括动态表格和卡片"""
         self.root.title(i18n.t('app_title'))
         
         self.lbl_port.configure(text=i18n.t('select_port')) if HAS_CTK else self.lbl_port.config(text=i18n.t('select_port'))
@@ -312,6 +305,7 @@ class SerialDetectorApp:
             self.use_common_bauds.configure(text=i18n.t('chk_common_bauds'))
             self.lbl_parity_title.configure(text=i18n.t('parity_title'))
             self.lbl_custom_hex.configure(text=i18n.t('custom_hex_title'))
+            self.entry_custom_hex.configure(placeholder_text=i18n.t('custom_hex_placeholder'))
             self.lbl_sample_time.configure(text=i18n.t('sample_time_title'))
             self.lbl_sample.configure(text=i18n.t('sample_title'))
             self.lbl_log.configure(text=i18n.t('log_title'))
@@ -320,7 +314,7 @@ class SerialDetectorApp:
             self.combo_mode.current(0)
             self.btn_start.config(text=i18n.t('btn_stop') if self.engine.is_running() else i18n.t('btn_start'))
 
-        # 更新表格标题
+        # 刷新表格标题
         self.tree.heading("score", text=i18n.t('table_score'))
         self.tree.heading("param", text=i18n.t('table_param'))
         self.tree.heading("protocol", text=i18n.t('table_protocol'))
@@ -328,7 +322,25 @@ class SerialDetectorApp:
         self.tree.heading("ascii_ratio", text=i18n.t('table_ascii_ratio'))
         self.tree.heading("details", text=i18n.t('table_details'))
 
-        # 更新推荐卡片文案
+        # 重新刷新已保存表格项的 details 语言
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        for res in self.results_data:
+            res['details'] = i18n.t(res.get('details_key', 'detail_ascii_ratio'), **res.get('details_kwargs', {}))
+            self.tree.insert(
+                "", "end",
+                values=(
+                    f"{res['score']:.1f}",
+                    res['param_str'],
+                    res['protocol'],
+                    res['mode_used'].upper(),
+                    f"{res['ascii_ratio']:.1f}%",
+                    res['details']
+                )
+            )
+
+        # 刷新推荐卡片文案
         if not self.results_data:
             if HAS_CTK:
                 self.lbl_best_title.configure(text=i18n.t('best_card_title_default'))
@@ -437,6 +449,7 @@ class SerialDetectorApp:
 
     def _add_result_to_tree(self, res: Dict[str, Any]):
         self.results_data.append(res)
+        res['details'] = i18n.t(res.get('details_key', 'detail_ascii_ratio'), **res.get('details_kwargs', {}))
         self.tree.insert(
             "", "end",
             values=(
@@ -475,8 +488,10 @@ class SerialDetectorApp:
         sorted_res = sorted(self.results_data, key=lambda x: x['score'], reverse=True)
         best = sorted_res[0]
 
+        details_str = i18n.t(best.get('details_key', 'detail_ascii_ratio'), **best.get('details_kwargs', {}))
+
         title = i18n.t('best_card_title_found', baud=best['baudrate'], param=f"{best['databits']}{best['parity'][0]}{best['stopbits']}")
-        detail = i18n.t('best_card_detail_found', protocol=best['protocol'], score=f"{best['score']:.1f}", details=best['details'])
+        detail = i18n.t('best_card_detail_found', protocol=best['protocol'], score=f"{best['score']:.1f}", details=details_str)
 
         if HAS_CTK:
             self.lbl_best_title.configure(text=title, text_color="#4ade80")

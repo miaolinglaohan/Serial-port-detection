@@ -50,6 +50,17 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'log_high_confidence': '✅ 已匹配到高置信度目标 ({protocol})，探测完成！',
         'log_complete_summary': '🏁 探测结束！共找到 {count} 个潜在符合的参数组合。',
         'log_complete_best': '🎉 探测完美完成！推导结果: 波特率={baud}, 校验位={parity}, 协议={protocol}',
+        'log_probe_hex_err': '⚠️ 自定义 Hex 探针解析失败: {err}',
+        
+        # 算法详情 i18n
+        'detail_no_data': '未接收到有效数据字节',
+        'detail_modbus': '通过 Modbus RTU 帧 CRC16 完整校验',
+        'detail_nmea': '匹配到 NMEA0183 规整语句结构',
+        'detail_at': '匹配到 AT 指令典型响应关键词 (OK/ERROR)',
+        'detail_ascii': '高可读性 UTF-8 文本流',
+        'detail_ascii_ratio': 'ASCII可读率: {ratio}%',
+        'sample_modbus_tag': '[Modbus 二进制帧]',
+        'sample_binary_tag': '[二进制/非纯文本]',
     },
     'en': {
         'app_title': 'Serial Black-Box Detector v1.1',
@@ -93,6 +104,17 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'log_high_confidence': '✅ Matched high confidence target ({protocol}), detection completed!',
         'log_complete_summary': '🏁 Scan finished! Found {count} candidate parameter combinations.',
         'log_complete_best': '🎉 Detection complete! Inferred Result: Baud={baud}, Parity={parity}, Protocol={protocol}',
+        'log_probe_hex_err': '⚠️ Custom Hex probe parsing failed: {err}',
+        
+        # 算法详情 i18n
+        'detail_no_data': 'No valid data bytes received',
+        'detail_modbus': 'Passed Modbus RTU Frame CRC16 Check',
+        'detail_nmea': 'Matched NMEA0183 Sentence Structure',
+        'detail_at': 'Matched AT Command Keywords (OK/ERROR)',
+        'detail_ascii': 'High Readability UTF-8 Text Stream',
+        'detail_ascii_ratio': 'ASCII Readability Ratio: {ratio}%',
+        'sample_modbus_tag': '[Modbus Binary Frame]',
+        'sample_binary_tag': '[Binary / Non-Plain Text]',
     }
 }
 
