@@ -51,82 +51,97 @@ class SerialDetectorApp:
         if HAS_CTK:
             control_frame = ctk.CTkFrame(self.main_frame, corner_radius=8)
             control_frame.pack(fill="x", padx=10, pady=(10, 5))
-            
-            self.lbl_port = ctk.CTkLabel(control_frame, text=i18n.t('select_port'), font=("Microsoft YaHei", 12, "bold"))
-            self.lbl_port.pack(side="left", padx=(15, 5), pady=10)
-            
-            self.combo_ports = ctk.CTkOptionMenu(control_frame, width=200, values=["..."])
-            self.combo_ports.pack(side="left", padx=5, pady=10)
-            
-            self.btn_refresh = ctk.CTkButton(control_frame, text=i18n.t('refresh'), width=70, command=self.refresh_ports)
-            self.btn_refresh.pack(side="left", padx=5, pady=10)
-            
-            self.lbl_mode = ctk.CTkLabel(control_frame, text=i18n.t('detection_mode'), font=("Microsoft YaHei", 12, "bold"))
-            self.lbl_mode.pack(side="left", padx=(15, 5), pady=10)
-            
-            self.combo_mode = ctk.CTkOptionMenu(
-                control_frame, 
-                width=180, 
-                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')]
-            )
-            self.combo_mode.set(i18n.t('mode_auto'))
-            self.combo_mode.pack(side="left", padx=5, pady=10)
-            
+
+            # 第一行: 串口选择 + 刷新按钮 + 右侧语言选择
+            row1 = ctk.CTkFrame(control_frame, fg_color="transparent")
+            row1.pack(fill="x", padx=10, pady=(8, 4))
+
+            self.lbl_port = ctk.CTkLabel(row1, text=i18n.t('select_port'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_port.pack(side="left", padx=(5, 5))
+
+            self.combo_ports = ctk.CTkOptionMenu(row1, width=320, values=["..."])
+            self.combo_ports.pack(side="left", padx=5)
+
+            self.btn_refresh = ctk.CTkButton(row1, text=i18n.t('refresh'), width=85, command=self.refresh_ports)
+            self.btn_refresh.pack(side="left", padx=5)
+
             self.combo_lang = ctk.CTkOptionMenu(
-                control_frame,
-                width=110,
+                row1,
+                width=115,
                 values=list(LANGUAGES.values()),
                 command=self._on_language_change
             )
             self.combo_lang.set(LANGUAGES['zh'])
-            self.combo_lang.pack(side="left", padx=(15, 5), pady=10)
+            self.combo_lang.pack(side="right", padx=5)
+
+            # 第二行: 探测模式选择 + 右侧醒目主按钮
+            row2 = ctk.CTkFrame(control_frame, fg_color="transparent")
+            row2.pack(fill="x", padx=10, pady=(4, 8))
+
+            self.lbl_mode = ctk.CTkLabel(row2, text=i18n.t('detection_mode'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_mode.pack(side="left", padx=(5, 5))
+
+            self.combo_mode = ctk.CTkOptionMenu(
+                row2,
+                width=240,
+                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')]
+            )
+            self.combo_mode.set(i18n.t('mode_auto'))
+            self.combo_mode.pack(side="left", padx=5)
 
             self.btn_start = ctk.CTkButton(
-                control_frame, 
-                text=i18n.t('btn_start'), 
-                fg_color="#2b8a3e", 
+                row2,
+                text=i18n.t('btn_start'),
+                fg_color="#2b8a3e",
                 hover_color="#216e31",
-                font=("Microsoft YaHei", 13, "bold"),
-                width=140,
+                font=("Microsoft YaHei", 14, "bold"),
+                width=180,
+                height=36,
                 command=self.toggle_detection
             )
-            self.btn_start.pack(side="right", padx=15, pady=10)
+            self.btn_start.pack(side="right", padx=5)
         else:
             control_frame = ttk.LabelFrame(self.main_frame, text=" Controls ", padding=10)
             control_frame.pack(fill="x", padx=5, pady=5)
-            
-            self.lbl_port = ttk.Label(control_frame, text=i18n.t('select_port'))
+
+            row1 = ttk.Frame(control_frame)
+            row1.pack(fill="x", pady=2)
+
+            self.lbl_port = ttk.Label(row1, text=i18n.t('select_port'))
             self.lbl_port.pack(side="left", padx=5)
-            
-            self.combo_ports = ttk.Combobox(control_frame, width=22, state="readonly")
+
+            self.combo_ports = ttk.Combobox(row1, width=35, state="readonly")
             self.combo_ports.pack(side="left", padx=5)
-            
-            self.btn_refresh = ttk.Button(control_frame, text=i18n.t('refresh'), command=self.refresh_ports)
+
+            self.btn_refresh = ttk.Button(row1, text=i18n.t('refresh'), command=self.refresh_ports)
             self.btn_refresh.pack(side="left", padx=5)
-            
-            self.lbl_mode = ttk.Label(control_frame, text=i18n.t('detection_mode'))
-            self.lbl_mode.pack(side="left", padx=(15, 5))
-            
-            self.combo_mode = ttk.Combobox(
-                control_frame, 
-                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')], 
-                state="readonly",
-                width=18
-            )
-            self.combo_mode.current(0)
-            self.combo_mode.pack(side="left", padx=5)
 
             self.combo_lang = ttk.Combobox(
-                control_frame,
+                row1,
                 values=list(LANGUAGES.values()),
                 state="readonly",
                 width=10
             )
             self.combo_lang.current(0)
-            self.combo_lang.pack(side="left", padx=(15, 5))
+            self.combo_lang.pack(side="right", padx=5)
             self.combo_lang.bind("<<ComboboxSelected>>", self._on_language_change_ttk)
-            
-            self.btn_start = ttk.Button(control_frame, text=i18n.t('btn_start'), command=self.toggle_detection)
+
+            row2 = ttk.Frame(control_frame)
+            row2.pack(fill="x", pady=4)
+
+            self.lbl_mode = ttk.Label(row2, text=i18n.t('detection_mode'))
+            self.lbl_mode.pack(side="left", padx=5)
+
+            self.combo_mode = ttk.Combobox(
+                row2,
+                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')],
+                state="readonly",
+                width=24
+            )
+            self.combo_mode.current(0)
+            self.combo_mode.pack(side="left", padx=5)
+
+            self.btn_start = ttk.Button(row2, text=i18n.t('btn_start'), command=self.toggle_detection)
             self.btn_start.pack(side="right", padx=5)
 
     def _build_middle_panel(self):
