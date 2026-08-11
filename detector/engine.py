@@ -19,9 +19,23 @@ class DetectionEngine:
     def __init__(self):
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
+        self._serial_lock = threading.Lock()
+        self._active_serial: Optional[serial.Serial] = None
 
     def stop(self):
         self._stop_event.set()
+        with self._serial_lock:
+            ser = self._active_serial
+
+        if ser and ser.is_open:
+            try:
+                ser.cancel_read()
+            except Exception:
+                pass
+            try:
+                ser.cancel_write()
+            except Exception:
+                pass
 
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
@@ -68,7 +82,7 @@ class DetectionEngine:
             if on_log:
                 on_log(msg)
 
-        log(i18n.t('log_start_detection', port=port, mode=mode.upper()))
+        log(i18n.t('log_start_detection', port=port, mode=i18n.t(f'mode_value_{mode}')))
         
         probes = list(DEFAULT_PROBES)
         if custom_probe_hex:
@@ -114,6 +128,8 @@ class DetectionEngine:
                     stopbits=stopbit_val,
                     timeout=sample_time
                 )
+                with self._serial_lock:
+                    self._active_serial = ser
                 
                 if mode in ('passive', 'auto'):
                     t_start = time.time()
@@ -137,6 +153,8 @@ class DetectionEngine:
                         t_start = time.time()
                         probe_data = b""
                         while (time.time() - t_start) < (sample_time * 0.8):
+                            if self._stop_event.is_set():
+                                break
                             if ser.in_waiting > 0:
                                 probe_data += ser.read(ser.in_waiting)
                             time.sleep(0.01)
@@ -154,6 +172,10 @@ class DetectionEngine:
                     except Exception:
                         pass
                 continue
+            finally:
+                with self._serial_lock:
+                    if self._active_serial is ser:
+                        self._active_serial = None
 
             if received_data:
                 eval_res = evaluate_data_payload(received_data)

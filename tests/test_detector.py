@@ -1,7 +1,9 @@
 import unittest
+import threading
 from detector.algorithms import evaluate_data_payload, crc16_modbus, calculate_ascii_score
 from detector.serial_utils import COMMON_BAUDRATES, get_available_ports
 from detector.engine import DetectionEngine
+from unittest.mock import patch
 
 class TestSerialDetector(unittest.TestCase):
 
@@ -41,6 +43,59 @@ class TestSerialDetector(unittest.TestCase):
     def test_available_ports(self):
         ports = get_available_ports()
         self.assertIsInstance(ports, list)
+
+    def test_stop_interrupts_active_probe_without_data(self):
+        class FakeSerial:
+            def __init__(self, *args, **kwargs):
+                self.is_open = True
+                self.in_waiting = 0
+
+            def reset_input_buffer(self):
+                pass
+
+            def write(self, data):
+                return len(data)
+
+            def flush(self):
+                pass
+
+            def read(self, size=1):
+                return b""
+
+            def cancel_read(self):
+                pass
+
+            def cancel_write(self):
+                pass
+
+            def close(self):
+                self.is_open = False
+
+        engine = DetectionEngine()
+        first_progress = threading.Event()
+        completed = threading.Event()
+        progress_calls = []
+
+        def on_progress(current, total, param_desc):
+            progress_calls.append(current)
+            first_progress.set()
+
+        with patch("detector.engine.serial.Serial", FakeSerial):
+            started = engine.start_detection_async(
+                port="COM_TEST",
+                mode="active",
+                baudrates=[9600, 19200, 38400],
+                parities=["None (N)"],
+                sample_time=1.0,
+                on_progress=on_progress,
+                on_complete=lambda results: completed.set(),
+            )
+
+            self.assertTrue(started)
+            self.assertTrue(first_progress.wait(0.5))
+            engine.stop()
+            self.assertTrue(completed.wait(0.5))
+            self.assertLess(len(progress_calls), 3)
 
 if __name__ == '__main__':
     unittest.main()
