@@ -1,4 +1,5 @@
 import serial
+from serial import SerialException
 import serial.tools.list_ports
 from typing import List, Dict, Tuple
 
@@ -38,13 +39,25 @@ def get_available_ports() -> List[Dict[str, str]]:
     """获取当前系统可用的串口列表及详细描述"""
     ports = []
     for port in serial.tools.list_ports.comports():
+        is_busy, status_message = check_port_busy(port.device)
         ports.append({
             'device': port.device,
             'description': port.description,
             'hwid': port.hwid,
+            'is_busy': is_busy,
+            'status_message': status_message,
             'display': f"{port.device} - {port.description}"
         })
     return ports
+
+def check_port_busy(port: str) -> Tuple[bool, str]:
+    """短暂打开串口，判断端口是否已被其他程序占用。"""
+    try:
+        ser = serial.Serial(port=port, timeout=0.05, write_timeout=0.05)
+        ser.close()
+        return False, ""
+    except (PermissionError, SerialException, OSError) as e:
+        return True, str(e)
 
 def test_serial_open(port: str, baudrate: int, parity=serial.PARITY_NONE, 
                      bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, 

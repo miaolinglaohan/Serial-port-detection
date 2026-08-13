@@ -44,6 +44,22 @@ class TestSerialDetector(unittest.TestCase):
         ports = get_available_ports()
         self.assertIsInstance(ports, list)
 
+    def test_available_ports_marks_busy_ports(self):
+        class FakePort:
+            device = "COM_BUSY"
+            description = "Busy test port"
+            hwid = "TEST"
+
+        def fake_serial(*args, **kwargs):
+            raise PermissionError("Access is denied")
+
+        with patch("detector.serial_utils.serial.tools.list_ports.comports", return_value=[FakePort()]):
+            with patch("detector.serial_utils.serial.Serial", side_effect=fake_serial):
+                ports = get_available_ports()
+
+        self.assertEqual(ports[0]["device"], "COM_BUSY")
+        self.assertTrue(ports[0]["is_busy"])
+
     def test_stop_interrupts_active_probe_without_data(self):
         class FakeSerial:
             def __init__(self, *args, **kwargs):

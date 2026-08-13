@@ -12,7 +12,7 @@ except ImportError:
 
 from detector.serial_utils import get_available_ports, COMMON_BAUDRATES, ALL_BAUDRATES, PARITY_OPTIONS
 from detector.engine import DetectionEngine
-from detector.i18n import i18n, LANGUAGES
+from detector.i18n import i18n, LANGUAGES, TRANSLATIONS
 
 class SerialDetectorApp:
     """串口黑盒探测小工具 GUI 主界面 (完全无死角中/英多语言)"""
@@ -417,7 +417,7 @@ class SerialDetectorApp:
         if not ports_list:
             display_values = [i18n.t('no_port_warning')]
         else:
-            display_values = [p['display'] for p in ports_list]
+            display_values = [self._format_port_display(p) for p in ports_list]
 
         if HAS_CTK:
             self.combo_ports.configure(values=display_values)
@@ -443,6 +443,9 @@ class SerialDetectorApp:
         port_str = self.combo_ports.get()
         if not port_str or port_str in (i18n.t('no_port_warning'), "未检测到有效串口", "No valid serial ports found"):
             messagebox.showwarning(i18n.t('dialog_warning_title'), i18n.t('warn_select_port'))
+            return
+        if self._is_busy_port_display(port_str):
+            messagebox.showwarning(i18n.t('dialog_warning_title'), i18n.t('warn_port_busy'))
             return
 
         port = port_str.split(" ")[0].strip()
@@ -607,6 +610,16 @@ class SerialDetectorApp:
 
     def _localized_mode_label(self, mode: str) -> str:
         return i18n.t(f"mode_value_{mode}", mode=mode).upper() if i18n.current_lang == 'en' else i18n.t(f"mode_value_{mode}", mode=mode)
+
+    def _format_port_display(self, port_info: Dict[str, Any]) -> str:
+        display = port_info['display']
+        if port_info.get('is_busy'):
+            display += f" [{i18n.t('port_status_busy')}]"
+        return display
+
+    def _is_busy_port_display(self, display_text: str) -> bool:
+        busy_labels = [TRANSLATIONS[lang]['port_status_busy'] for lang in TRANSLATIONS]
+        return any(f"[{label}]" in display_text for label in busy_labels)
 
     def log(self, message: str):
         self.root.after(0, self._append_log_ui, message)
