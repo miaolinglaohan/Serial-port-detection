@@ -51,13 +51,16 @@ class SerialDetectorApp:
         if HAS_CTK:
             control_frame = ctk.CTkFrame(self.main_frame, corner_radius=8, fg_color="#2f2f2f")
             control_frame.pack(fill="x", padx=8, pady=(8, 10))
-            control_frame.grid_columnconfigure(1, weight=1)
+            
+            # 方案B: 设定列3为空白占位弹簧，权重为1，吸收多余空间
+            control_frame.grid_columnconfigure(3, weight=1)
 
             self.lbl_port = ctk.CTkLabel(control_frame, text=i18n.t('select_port'), font=("Microsoft YaHei", 12, "bold"))
             self.lbl_port.grid(row=0, column=0, padx=(14, 8), pady=12, sticky="w")
 
-            self.combo_ports = ctk.CTkOptionMenu(control_frame, width=270, height=34, values=["..."])
-            self.combo_ports.grid(row=0, column=1, padx=(0, 10), pady=12, sticky="ew")
+            # 固定一个稍大的宽度，不再给予拉伸权重
+            self.combo_ports = ctk.CTkOptionMenu(control_frame, width=320, height=34, values=["..."])
+            self.combo_ports.grid(row=0, column=1, padx=(0, 10), pady=12, sticky="w")
 
             self.btn_refresh = ctk.CTkButton(control_frame, text=i18n.t('refresh'), width=90, height=34, command=self.refresh_ports)
             self.btn_refresh.grid(row=0, column=2, padx=(0, 12), pady=12)
@@ -70,7 +73,8 @@ class SerialDetectorApp:
                 command=self._on_language_change
             )
             self.combo_lang.set(LANGUAGES['zh'])
-            self.combo_lang.grid(row=0, column=3, padx=(0, 12), pady=12)
+            # 移到第4列
+            self.combo_lang.grid(row=0, column=4, padx=(0, 12), pady=12)
 
             self.btn_start = ctk.CTkButton(
                 control_frame,
@@ -82,19 +86,21 @@ class SerialDetectorApp:
                 height=38,
                 command=self.toggle_detection
             )
-            self.btn_start.grid(row=0, column=4, padx=(0, 14), pady=12)
+            # 移到第5列
+            self.btn_start.grid(row=0, column=5, padx=(0, 14), pady=12)
         else:
             self.control_frame = ttk.LabelFrame(self.main_frame, text=f" {i18n.t('controls_title')} ", padding=10)
             control_frame = self.control_frame
             control_frame.pack(fill="x", padx=5, pady=5)
 
-            control_frame.grid_columnconfigure(1, weight=1)
+            # 方案B: 设定列3为空白占位弹簧，权重为1，吸收多余空间
+            control_frame.grid_columnconfigure(3, weight=1)
 
             self.lbl_port = ttk.Label(control_frame, text=i18n.t('select_port'))
             self.lbl_port.grid(row=0, column=0, padx=5, pady=4, sticky="w")
 
-            self.combo_ports = ttk.Combobox(control_frame, width=35, state="readonly")
-            self.combo_ports.grid(row=0, column=1, padx=5, pady=4, sticky="ew")
+            self.combo_ports = ttk.Combobox(control_frame, width=45, state="readonly")
+            self.combo_ports.grid(row=0, column=1, padx=5, pady=4, sticky="w")
 
             self.btn_refresh = ttk.Button(control_frame, text=i18n.t('refresh'), command=self.refresh_ports)
             self.btn_refresh.grid(row=0, column=2, padx=5, pady=4)
@@ -106,11 +112,13 @@ class SerialDetectorApp:
                 width=10
             )
             self.combo_lang.current(0)
-            self.combo_lang.grid(row=0, column=3, padx=5, pady=4)
+            # 移到第4列
+            self.combo_lang.grid(row=0, column=4, padx=5, pady=4)
             self.combo_lang.bind("<<ComboboxSelected>>", self._on_language_change_ttk)
 
             self.btn_start = ttk.Button(control_frame, text=i18n.t('btn_start'), command=self.toggle_detection)
-            self.btn_start.grid(row=0, column=4, padx=5, pady=4)
+            # 移到第5列
+            self.btn_start.grid(row=0, column=5, padx=5, pady=4)
 
     def _build_middle_panel(self):
         if HAS_CTK:
@@ -276,8 +284,8 @@ class SerialDetectorApp:
             fieldbackground="#171717",
             foreground="#e5e7eb",
             borderwidth=0,
-            rowheight=26,
-            font=("Microsoft YaHei", 10),
+            rowheight=30,
+            font=("Microsoft YaHei", 12),
         )
         style.configure(
             "Treeview.Heading",
@@ -285,7 +293,7 @@ class SerialDetectorApp:
             foreground="#f8fafc",
             borderwidth=0,
             relief="flat",
-            font=("Microsoft YaHei", 10, "bold"),
+            font=("Microsoft YaHei", 12, "bold"),
         )
         style.map(
             "Treeview",
@@ -301,19 +309,19 @@ class SerialDetectorApp:
             left_preview = ctk.CTkFrame(bottom_frame, corner_radius=8, fg_color="#2a2a2a")
             left_preview.pack(side="left", fill="both", expand=True, padx=(0, 5), pady=0)
             
-            self.lbl_sample = ctk.CTkLabel(left_preview, text=i18n.t('sample_title'), font=("Microsoft YaHei", 11, "bold"))
+            self.lbl_sample = ctk.CTkLabel(left_preview, text=i18n.t('sample_title'), font=("Microsoft YaHei", 12, "bold"))
             self.lbl_sample.pack(anchor="w", padx=12, pady=(10, 6))
             
-            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Consolas", 10), fg_color="#171717", corner_radius=6)
+            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Consolas", 12), fg_color="#171717", corner_radius=6)
             self.txt_sample.pack(fill="both", expand=True, padx=10, pady=(0, 10))
             
             right_log = ctk.CTkFrame(bottom_frame, corner_radius=8, fg_color="#2a2a2a")
             right_log.pack(side="right", fill="both", expand=True, padx=(5, 0), pady=0)
             
-            self.lbl_log = ctk.CTkLabel(right_log, text=i18n.t('log_title'), font=("Microsoft YaHei", 11, "bold"))
+            self.lbl_log = ctk.CTkLabel(right_log, text=i18n.t('log_title'), font=("Microsoft YaHei", 12, "bold"))
             self.lbl_log.pack(anchor="w", padx=12, pady=(10, 6))
             
-            self.txt_log = ctk.CTkTextbox(right_log, font=("Consolas", 10), fg_color="#171717", corner_radius=6)
+            self.txt_log = ctk.CTkTextbox(right_log, font=("Consolas", 12), fg_color="#171717", corner_radius=6)
             self.txt_log.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         else:
             bottom_frame = ttk.Frame(parent)
@@ -323,7 +331,7 @@ class SerialDetectorApp:
             lbl_log = self.lbl_log_group
             lbl_log.pack(fill="both", expand=True)
             
-            self.txt_log = tk.Text(lbl_log, height=6, font=("Consolas", 9))
+            self.txt_log = tk.Text(lbl_log, height=6, font=("Consolas", 11))
             self.txt_log.pack(fill="both", expand=True)
 
     def _on_language_change(self, selected_val: str):
