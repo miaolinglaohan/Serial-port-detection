@@ -19,23 +19,9 @@ class DetectionEngine:
     def __init__(self):
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
-        self._serial_lock = threading.Lock()
-        self._active_serial: Optional[serial.Serial] = None
 
     def stop(self):
         self._stop_event.set()
-        with self._serial_lock:
-            ser = self._active_serial
-
-        if ser and ser.is_open:
-            try:
-                ser.cancel_read()
-            except Exception:
-                pass
-            try:
-                ser.cancel_write()
-            except Exception:
-                pass
 
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
@@ -62,7 +48,7 @@ class DetectionEngine:
         
         bauds = baudrates if baudrates else COMMON_BAUDRATES
         pars = parities if parities else ['None (N)', 'Even (E)', 'Odd (O)']
-        dbits = databits if databits else [8]
+        dbits = databits if databits else [8, 7]  # 默认同时覆盖 8Bit 和 7Bit
         sbits = stopbits if stopbits else ['1']
         
         self._thread = threading.Thread(
@@ -82,7 +68,7 @@ class DetectionEngine:
             if on_log:
                 on_log(msg)
 
-        log(i18n.t('log_start_detection', port=port, mode=i18n.t(f'mode_value_{mode}')))
+        log(i18n.t('log_start_detection', port=port, mode=mode.upper()))
         
         probes = list(DEFAULT_PROBES)
         if custom_probe_hex:
@@ -93,15 +79,18 @@ class DetectionEngine:
             except Exception as e:
                 log(i18n.t('log_probe_hex_err', err=str(e)))
 
+        # 组织扫描矩阵
         test_matrix = []
         for b in bauds:
-            for p in pars:
-                for d in dbits:
-                    for s in sbits:
+            for d in dbits:
+                for s in sbits:
+                    for p in pars:
                         test_matrix.append((b, p, d, s))
                         
         total_steps = len(test_matrix)
         results: List[Dict[str, Any]] = []
+
+        found_high_score_in_baud = False
 
         for idx, (baud, parity_key, databit, stopbit_key) in enumerate(test_matrix, start=1):
             if self._stop_event.is_set():
@@ -128,8 +117,6 @@ class DetectionEngine:
                     stopbits=stopbit_val,
                     timeout=sample_time
                 )
-                with self._serial_lock:
-                    self._active_serial = ser
                 
                 if mode in ('passive', 'auto'):
                     t_start = time.time()
@@ -153,8 +140,6 @@ class DetectionEngine:
                         t_start = time.time()
                         probe_data = b""
                         while (time.time() - t_start) < (sample_time * 0.8):
-                            if self._stop_event.is_set():
-                                break
                             if ser.in_waiting > 0:
                                 probe_data += ser.read(ser.in_waiting)
                             time.sleep(0.01)
@@ -172,13 +157,9 @@ class DetectionEngine:
                     except Exception:
                         pass
                 continue
-            finally:
-                with self._serial_lock:
-                    if self._active_serial is ser:
-                        self._active_serial = None
 
             if received_data:
-                eval_res = evaluate_data_payload(received_data)
+                eval_res = evaluate_data_payload(received_data, parity_key=parity_key)
                 if eval_res['score'] > 0:
                     res_entry = {
                         'port': port,
@@ -205,8 +186,7 @@ class DetectionEngine:
                         on_result_found(res_entry)
                         
                     if eval_res['score'] >= 98.0:
-                        log(i18n.t('log_high_confidence', protocol=eval_res['protocol']))
-                        break
+                        found_high_score_in_baud = True
 
         results.sort(key=lambda x: x['score'], reverse=True)
         log(i18n.t('log_complete_summary', count=len(results)))

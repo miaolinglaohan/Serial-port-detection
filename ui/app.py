@@ -15,7 +15,7 @@ from detector.engine import DetectionEngine
 from detector.i18n import i18n, LANGUAGES, TRANSLATIONS
 
 class SerialDetectorApp:
-    """串口黑盒探测小工具 GUI 主界面 (完全无死角中/英多语言)"""
+    """串口黑盒探测小工具 GUI 主界面 (包含字体统一与 Data Bits / Parity 修复)"""
 
     def __init__(self):
         self.engine = DetectionEngine()
@@ -30,80 +30,100 @@ class SerialDetectorApp:
             self.root = tk.Tk()
 
         self.root.title(i18n.t('app_title'))
-        self.root.geometry("1020x740")
-        self.root.minsize(850, 600)
+        self.root.geometry("1040x760")
+        self.root.minsize(880, 620)
 
         self._setup_ui()
         self.refresh_ports()
 
     def _setup_ui(self):
         if HAS_CTK:
-            self.main_frame = ctk.CTkFrame(self.root, corner_radius=8, fg_color="#242424")
-            self.main_frame.pack(fill="both", expand=True, padx=12, pady=12)
+            self.main_frame = ctk.CTkFrame(self.root, corner_radius=10)
+            self.main_frame.pack(fill="both", expand=True, padx=15, pady=15)
         else:
             self.main_frame = ttk.Frame(self.root, padding=10)
             self.main_frame.pack(fill="both", expand=True)
 
         self._build_top_controls()
         self._build_middle_panel()
+        self._build_bottom_panel()
 
     def _build_top_controls(self):
         if HAS_CTK:
             control_frame = ctk.CTkFrame(self.main_frame, corner_radius=8, fg_color="#2f2f2f")
             control_frame.pack(fill="x", padx=8, pady=(8, 10))
-            
-            # 方案B: 设定列3为空白占位弹簧，权重为1，吸收多余空间
             control_frame.grid_columnconfigure(3, weight=1)
 
-            self.lbl_port = ctk.CTkLabel(control_frame, text=i18n.t('select_port'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_port = ctk.CTkLabel(control_frame, text=i18n.t('select_port'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_port.grid(row=0, column=0, padx=(14, 8), pady=12, sticky="w")
 
-            # 固定一个稍大的宽度，不再给予拉伸权重
-            self.combo_ports = ctk.CTkOptionMenu(control_frame, width=320, height=34, values=["..."])
+            self.combo_ports = ctk.CTkOptionMenu(control_frame, width=320, height=34, font=("Microsoft YaHei UI", 12), values=["..."])
             self.combo_ports.grid(row=0, column=1, padx=(0, 10), pady=12, sticky="w")
 
-            self.btn_refresh = ctk.CTkButton(control_frame, text=i18n.t('refresh'), width=90, height=34, command=self.refresh_ports)
+            self.btn_refresh = ctk.CTkButton(control_frame, text=i18n.t('refresh'), width=90, height=34, font=("Microsoft YaHei UI", 12), command=self.refresh_ports)
             self.btn_refresh.grid(row=0, column=2, padx=(0, 12), pady=12)
+
+            self.lbl_mode = ctk.CTkLabel(control_frame, text=i18n.t('detection_mode'), font=("Microsoft YaHei UI", 12, "bold"))
+            self.lbl_mode.grid(row=0, column=3, padx=(12, 6), pady=12, sticky="e")
+
+            self.combo_mode = ctk.CTkOptionMenu(
+                control_frame, 
+                width=190, 
+                height=34,
+                font=("Microsoft YaHei UI", 12),
+                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')]
+            )
+            self.combo_mode.set(i18n.t('mode_auto'))
+            self.combo_mode.grid(row=0, column=4, padx=(0, 12), pady=12)
 
             self.combo_lang = ctk.CTkOptionMenu(
                 control_frame,
-                width=120,
+                width=115,
                 height=34,
+                font=("Microsoft YaHei UI", 12),
                 values=list(LANGUAGES.values()),
                 command=self._on_language_change
             )
             self.combo_lang.set(LANGUAGES['zh'])
-            # 移到第4列
-            self.combo_lang.grid(row=0, column=4, padx=(0, 12), pady=12)
+            self.combo_lang.grid(row=0, column=5, padx=(0, 12), pady=12)
 
             self.btn_start = ctk.CTkButton(
-                control_frame,
-                text=i18n.t('btn_start'),
-                fg_color="#2b8a3e",
+                control_frame, 
+                text=i18n.t('btn_start'), 
+                fg_color="#2b8a3e", 
                 hover_color="#216e31",
-                font=("Microsoft YaHei", 14, "bold"),
-                width=170,
-                height=38,
+                font=("Microsoft YaHei UI", 13, "bold"),
+                width=160,
+                height=36,
                 command=self.toggle_detection
             )
-            # 移到第5列
-            self.btn_start.grid(row=0, column=5, padx=(0, 14), pady=12)
+            self.btn_start.grid(row=0, column=6, padx=(0, 14), pady=12)
         else:
             self.control_frame = ttk.LabelFrame(self.main_frame, text=f" {i18n.t('controls_title')} ", padding=10)
             control_frame = self.control_frame
             control_frame.pack(fill="x", padx=5, pady=5)
-
-            # 方案B: 设定列3为空白占位弹簧，权重为1，吸收多余空间
             control_frame.grid_columnconfigure(3, weight=1)
 
             self.lbl_port = ttk.Label(control_frame, text=i18n.t('select_port'))
             self.lbl_port.grid(row=0, column=0, padx=5, pady=4, sticky="w")
 
-            self.combo_ports = ttk.Combobox(control_frame, width=45, state="readonly")
+            self.combo_ports = ttk.Combobox(control_frame, width=40, state="readonly")
             self.combo_ports.grid(row=0, column=1, padx=5, pady=4, sticky="w")
 
             self.btn_refresh = ttk.Button(control_frame, text=i18n.t('refresh'), command=self.refresh_ports)
             self.btn_refresh.grid(row=0, column=2, padx=5, pady=4)
+
+            self.lbl_mode = ttk.Label(control_frame, text=i18n.t('detection_mode'))
+            self.lbl_mode.grid(row=0, column=3, padx=5, pady=4, sticky="e")
+
+            self.combo_mode = ttk.Combobox(
+                control_frame, 
+                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')], 
+                state="readonly",
+                width=20
+            )
+            self.combo_mode.current(0)
+            self.combo_mode.grid(row=0, column=4, padx=5, pady=4)
 
             self.combo_lang = ttk.Combobox(
                 control_frame,
@@ -112,70 +132,70 @@ class SerialDetectorApp:
                 width=10
             )
             self.combo_lang.current(0)
-            # 移到第4列
-            self.combo_lang.grid(row=0, column=4, padx=5, pady=4)
+            self.combo_lang.grid(row=0, column=5, padx=5, pady=4)
             self.combo_lang.bind("<<ComboboxSelected>>", self._on_language_change_ttk)
 
             self.btn_start = ttk.Button(control_frame, text=i18n.t('btn_start'), command=self.toggle_detection)
-            # 移到第5列
-            self.btn_start.grid(row=0, column=5, padx=5, pady=4)
+            self.btn_start.grid(row=0, column=6, padx=5, pady=4)
 
     def _build_middle_panel(self):
         if HAS_CTK:
-            workbench = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-            workbench.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-
-            left_config = ctk.CTkFrame(workbench, width=300, corner_radius=8, fg_color="#2a2a2a")
-            left_config.pack(side="left", fill="y", padx=(0, 10))
-            left_config.pack_propagate(False)
-
-            self.lbl_scan_range = ctk.CTkLabel(left_config, text=i18n.t('scan_range_title'), font=("Microsoft YaHei", 14, "bold"))
-            self.lbl_scan_range.pack(anchor="w", padx=16, pady=(16, 12))
-
-            self.lbl_mode = ctk.CTkLabel(left_config, text=i18n.t('detection_mode'), font=("Microsoft YaHei", 11, "bold"))
-            self.lbl_mode.pack(anchor="w", padx=16, pady=(0, 4))
-
-            self.combo_mode = ctk.CTkOptionMenu(
-                left_config,
-                width=260,
-                height=34,
-                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')]
-            )
-            self.combo_mode.set(i18n.t('mode_auto'))
-            self.combo_mode.pack(fill="x", padx=16, pady=(0, 12))
-
-            self.use_common_bauds = ctk.CTkCheckBox(left_config, text=i18n.t('chk_common_bauds'), onvalue=1, offvalue=0)
+            mid_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+            mid_frame.pack(fill="both", expand=True, padx=0, pady=5)
+            
+            left_config = ctk.CTkFrame(mid_frame, width=260, corner_radius=8, fg_color="#2a2a2a")
+            left_config.pack(side="left", fill="y", padx=(0, 8), pady=0)
+            
+            self.lbl_scan_range = ctk.CTkLabel(left_config, text=i18n.t('scan_range_title'), font=("Microsoft YaHei UI", 13, "bold"))
+            self.lbl_scan_range.pack(anchor="w", padx=12, pady=(12, 8))
+            
+            self.use_common_bauds = ctk.CTkCheckBox(left_config, text=i18n.t('chk_common_bauds'), font=("Microsoft YaHei UI", 12), onvalue=1, offvalue=0)
             self.use_common_bauds.select()
-            self.use_common_bauds.pack(anchor="w", padx=16, pady=(2, 12))
+            self.use_common_bauds.pack(anchor="w", padx=12, pady=5)
             
-            self.lbl_parity_title = ctk.CTkLabel(left_config, text=i18n.t('parity_title'), font=("Microsoft YaHei", 11, "bold"))
-            self.lbl_parity_title.pack(anchor="w", padx=16, pady=(2, 6))
+            # 数据位勾选
+            self.lbl_databits_title = ctk.CTkLabel(left_config, text=i18n.t('databits_title'), font=("Microsoft YaHei UI", 11, "bold"))
+            self.lbl_databits_title.pack(anchor="w", padx=12, pady=(10, 2))
             
-            self.chk_parity_n = ctk.CTkCheckBox(left_config, text="None (N)", onvalue=1, offvalue=0)
+            self.chk_dbit_8 = ctk.CTkCheckBox(left_config, text=i18n.t('chk_databits_8'), font=("Microsoft YaHei UI", 11), onvalue=1, offvalue=0)
+            self.chk_dbit_8.select()
+            self.chk_dbit_8.pack(anchor="w", padx=18, pady=2)
+            
+            self.chk_dbit_7 = ctk.CTkCheckBox(left_config, text=i18n.t('chk_databits_7'), font=("Microsoft YaHei UI", 11), onvalue=1, offvalue=0)
+            self.chk_dbit_7.select()
+            self.chk_dbit_7.pack(anchor="w", padx=18, pady=2)
+
+            # 校验位勾选
+            self.lbl_parity_title = ctk.CTkLabel(left_config, text=i18n.t('parity_title'), font=("Microsoft YaHei UI", 11, "bold"))
+            self.lbl_parity_title.pack(anchor="w", padx=12, pady=(10, 2))
+            
+            self.chk_parity_n = ctk.CTkCheckBox(left_config, text="None (N)", font=("Microsoft YaHei UI", 11), onvalue=1, offvalue=0)
             self.chk_parity_n.select()
-            self.chk_parity_n.pack(anchor="w", padx=22, pady=3)
-            self.chk_parity_e = ctk.CTkCheckBox(left_config, text="Even (E)", onvalue=1, offvalue=0)
+            self.chk_parity_n.pack(anchor="w", padx=18, pady=2)
+            
+            self.chk_parity_e = ctk.CTkCheckBox(left_config, text="Even (E)", font=("Microsoft YaHei UI", 11), onvalue=1, offvalue=0)
             self.chk_parity_e.select()
-            self.chk_parity_e.pack(anchor="w", padx=22, pady=3)
-            self.chk_parity_o = ctk.CTkCheckBox(left_config, text="Odd (O)", onvalue=1, offvalue=0)
+            self.chk_parity_e.pack(anchor="w", padx=18, pady=2)
+            
+            self.chk_parity_o = ctk.CTkCheckBox(left_config, text="Odd (O)", font=("Microsoft YaHei UI", 11), onvalue=1, offvalue=0)
             self.chk_parity_o.select()
-            self.chk_parity_o.pack(anchor="w", padx=22, pady=3)
+            self.chk_parity_o.pack(anchor="w", padx=18, pady=2)
             
-            self.lbl_custom_hex = ctk.CTkLabel(left_config, text=i18n.t('custom_hex_title'), font=("Microsoft YaHei", 11, "bold"))
-            self.lbl_custom_hex.pack(anchor="w", padx=16, pady=(18, 4))
+            self.lbl_custom_hex = ctk.CTkLabel(left_config, text=i18n.t('custom_hex_title'), font=("Microsoft YaHei UI", 11, "bold"))
+            self.lbl_custom_hex.pack(anchor="w", padx=12, pady=(12, 2))
             
-            self.entry_custom_hex = ctk.CTkEntry(left_config, placeholder_text=i18n.t('custom_hex_placeholder'))
-            self.entry_custom_hex.pack(fill="x", padx=16, pady=(0, 14))
+            self.entry_custom_hex = ctk.CTkEntry(left_config, placeholder_text=i18n.t('custom_hex_placeholder'), font=("Microsoft YaHei UI", 11))
+            self.entry_custom_hex.pack(fill="x", padx=12, pady=4)
             
-            self.lbl_sample_time = ctk.CTkLabel(left_config, text=i18n.t('sample_time_title'), font=("Microsoft YaHei", 11, "bold"))
-            self.lbl_sample_time.pack(anchor="w", padx=16, pady=(0, 4))
+            self.lbl_sample_time = ctk.CTkLabel(left_config, text=i18n.t('sample_time_title'), font=("Microsoft YaHei UI", 11, "bold"))
+            self.lbl_sample_time.pack(anchor="w", padx=12, pady=(10, 2))
             
             self.slider_sample_time = ctk.CTkSlider(left_config, from_=0.1, to=1.0, number_of_steps=9)
             self.slider_sample_time.set(0.3)
-            self.slider_sample_time.pack(fill="x", padx=16, pady=(0, 10))
+            self.slider_sample_time.pack(fill="x", padx=12, pady=4)
             
-            right_display = ctk.CTkFrame(workbench, fg_color="transparent")
-            right_display.pack(side="right", fill="both", expand=True)
+            right_display = ctk.CTkFrame(mid_frame, fg_color="transparent")
+            right_display.pack(side="right", fill="both", expand=True, padx=0, pady=0)
             
             self.card_best = ctk.CTkFrame(right_display, fg_color="#1e293b", corner_radius=8)
             self.card_best.pack(fill="x", padx=0, pady=(0, 8))
@@ -183,71 +203,80 @@ class SerialDetectorApp:
             self.lbl_best_title = ctk.CTkLabel(
                 self.card_best, 
                 text=i18n.t('best_card_title_default'), 
-                font=("Microsoft YaHei", 14, "bold"),
+                font=("Microsoft YaHei UI", 13, "bold"),
                 text_color="#94a3b8"
             )
-            self.lbl_best_title.pack(anchor="w", padx=16, pady=(12, 3))
+            self.lbl_best_title.pack(anchor="w", padx=15, pady=(10, 2))
             
             self.lbl_best_detail = ctk.CTkLabel(
                 self.card_best, 
                 text=i18n.t('best_card_detail_default'), 
-                font=("Microsoft YaHei", 11),
+                font=("Microsoft YaHei UI", 11),
                 text_color="#cbd5e1"
             )
-            self.lbl_best_detail.pack(anchor="w", padx=16, pady=(0, 12))
+            self.lbl_best_detail.pack(anchor="w", padx=15, pady=(0, 10))
 
             self.progress_bar = ctk.CTkProgressBar(right_display)
             self.progress_bar.set(0)
-            self.progress_bar.pack(fill="x", padx=0, pady=(0, 8))
+            self.progress_bar.pack(fill="x", padx=0, pady=(0, 6))
 
             self._build_results_table(right_display)
-            self._build_bottom_panel(right_display)
 
         else:
-            workbench = ttk.Frame(self.main_frame)
-            workbench.pack(fill="both", expand=True, padx=5, pady=5)
+            mid_frame = ttk.Frame(self.main_frame)
+            mid_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
-            self.left_config_group = ttk.LabelFrame(workbench, text=f" {i18n.t('scan_range_title')} ", padding=10, width=260)
+            self.left_config_group = ttk.LabelFrame(mid_frame, text=f" {i18n.t('scan_range_title')} ", padding=10)
             left_config = self.left_config_group
-            left_config.pack(side="left", fill="y", padx=(0, 8))
+            left_config.pack(side="left", fill="y", padx=(0, 5), pady=0)
 
-            self.lbl_mode = ttk.Label(left_config, text=i18n.t('detection_mode'))
-            self.lbl_mode.pack(anchor="w", pady=(0, 4))
+            self.use_common_bauds = ttk.Checkbutton(left_config, text=i18n.t('chk_common_bauds'))
+            self.use_common_bauds.pack(anchor="w", pady=2)
 
-            self.combo_mode = ttk.Combobox(
-                left_config,
-                values=[i18n.t('mode_auto'), i18n.t('mode_passive'), i18n.t('mode_active')],
-                state="readonly",
-                width=24
-            )
-            self.combo_mode.current(0)
-            self.combo_mode.pack(fill="x", pady=(0, 10))
-
-            right_display = ttk.Frame(workbench)
-            right_display.pack(side="right", fill="both", expand=True)
+            self.card_best = ttk.LabelFrame(mid_frame, text=f" {i18n.t('best_group_title')} ", padding=10)
+            self.card_best.pack(fill="x", padx=5, pady=5)
             
-            self.card_best = ttk.LabelFrame(right_display, text=f" {i18n.t('best_group_title')} ", padding=10)
-            self.card_best.pack(fill="x", padx=0, pady=(0, 6))
-            
-            self.lbl_best_title = ttk.Label(self.card_best, text=i18n.t('best_card_title_default'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_best_title = ttk.Label(self.card_best, text=i18n.t('best_card_title_default'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_best_title.pack(anchor="w")
             self.lbl_best_detail = ttk.Label(self.card_best, text=i18n.t('best_card_detail_default'))
             self.lbl_best_detail.pack(anchor="w")
 
-            self.progress_bar = ttk.Progressbar(right_display, mode='determinate')
-            self.progress_bar.pack(fill="x", padx=0, pady=5)
+            self.progress_bar = ttk.Progressbar(mid_frame, mode='determinate')
+            self.progress_bar.pack(fill="x", padx=5, pady=5)
 
-            self._build_results_table(right_display)
-            self._build_bottom_panel(right_display)
+            self._build_results_table(mid_frame)
 
     def _build_results_table(self, parent):
-        self._setup_tree_style()
-
         table_frame = ttk.Frame(parent)
-        table_frame.pack(fill="both", expand=True, padx=0, pady=(0, 8))
+        table_frame.pack(fill="both", expand=True, padx=0, pady=0)
+
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure(
+            "Treeview",
+            background="#171717",
+            fieldbackground="#171717",
+            foreground="#e5e7eb",
+            borderwidth=0,
+            rowheight=30,
+            font=("Consolas", "Microsoft YaHei UI", 11),  # 修复表格中英文混排字体
+        )
+        style.configure(
+            "Treeview.Heading",
+            background="#262626",
+            foreground="#f8fafc",
+            borderwidth=0,
+            relief="flat",
+            font=("Microsoft YaHei UI", 11, "bold"),
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", "#2563eb")],
+            foreground=[("selected", "#ffffff")],
+        )
 
         columns = ("score", "param", "protocol", "mode", "ascii_ratio", "details")
-        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=8)
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=8, style="Treeview")
 
         self.tree.heading("score", text=i18n.t('table_score'))
         self.tree.heading("param", text=i18n.t('table_param'))
@@ -271,67 +300,39 @@ class SerialDetectorApp:
 
         self.tree.bind("<<TreeviewSelect>>", self._on_table_select)
 
-    def _setup_tree_style(self):
-        style = ttk.Style()
-        try:
-            style.theme_use("clam")
-        except tk.TclError:
-            pass
-
-        style.configure(
-            "Treeview",
-            background="#171717",
-            fieldbackground="#171717",
-            foreground="#e5e7eb",
-            borderwidth=0,
-            rowheight=30,
-            font=("Microsoft YaHei", 12),
-        )
-        style.configure(
-            "Treeview.Heading",
-            background="#2f2f2f",
-            foreground="#f8fafc",
-            borderwidth=0,
-            relief="flat",
-            font=("Microsoft YaHei", 12, "bold"),
-        )
-        style.map(
-            "Treeview",
-            background=[("selected", "#2563eb")],
-            foreground=[("selected", "#ffffff")],
-        )
-
-    def _build_bottom_panel(self, parent):
+    def _build_bottom_panel(self):
         if HAS_CTK:
-            bottom_frame = ctk.CTkFrame(parent, fg_color="transparent")
-            bottom_frame.pack(fill="both", expand=True, padx=0, pady=(0, 0))
+            bottom_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+            bottom_frame.pack(fill="both", expand=True, padx=0, pady=(8, 0))
             
             left_preview = ctk.CTkFrame(bottom_frame, corner_radius=8, fg_color="#2a2a2a")
             left_preview.pack(side="left", fill="both", expand=True, padx=(0, 5), pady=0)
             
-            self.lbl_sample = ctk.CTkLabel(left_preview, text=i18n.t('sample_title'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_sample = ctk.CTkLabel(left_preview, text=i18n.t('sample_title'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_sample.pack(anchor="w", padx=12, pady=(10, 6))
             
-            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Consolas", 12), fg_color="#171717", corner_radius=6)
+            # 修复 Consolas 与 微软雅黑混排字体
+            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Consolas", "Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
             self.txt_sample.pack(fill="both", expand=True, padx=10, pady=(0, 10))
             
             right_log = ctk.CTkFrame(bottom_frame, corner_radius=8, fg_color="#2a2a2a")
             right_log.pack(side="right", fill="both", expand=True, padx=(5, 0), pady=0)
             
-            self.lbl_log = ctk.CTkLabel(right_log, text=i18n.t('log_title'), font=("Microsoft YaHei", 12, "bold"))
+            self.lbl_log = ctk.CTkLabel(right_log, text=i18n.t('log_title'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_log.pack(anchor="w", padx=12, pady=(10, 6))
             
-            self.txt_log = ctk.CTkTextbox(right_log, font=("Consolas", 12), fg_color="#171717", corner_radius=6)
+            # 修复 Consolas 与 微软雅黑混排字体（解决日志粗宋体不美观问题）
+            self.txt_log = ctk.CTkTextbox(right_log, font=("Consolas", "Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
             self.txt_log.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         else:
-            bottom_frame = ttk.Frame(parent)
+            bottom_frame = ttk.Frame(self.main_frame)
             bottom_frame.pack(fill="both", expand=True, padx=0, pady=(0, 0))
             
             self.lbl_log_group = ttk.LabelFrame(bottom_frame, text=f" {i18n.t('logs_group_title')} ", padding=5)
             lbl_log = self.lbl_log_group
             lbl_log.pack(fill="both", expand=True)
             
-            self.txt_log = tk.Text(lbl_log, height=6, font=("Consolas", 11))
+            self.txt_log = tk.Text(lbl_log, height=6, font=("Consolas", "Microsoft YaHei UI", 11))
             self.txt_log.pack(fill="both", expand=True)
 
     def _on_language_change(self, selected_val: str):
@@ -364,6 +365,9 @@ class SerialDetectorApp:
             
             self.lbl_scan_range.configure(text=i18n.t('scan_range_title'))
             self.use_common_bauds.configure(text=i18n.t('chk_common_bauds'))
+            self.lbl_databits_title.configure(text=i18n.t('databits_title'))
+            self.chk_dbit_8.configure(text=i18n.t('chk_databits_8'))
+            self.chk_dbit_7.configure(text=i18n.t('chk_databits_7'))
             self.lbl_parity_title.configure(text=i18n.t('parity_title'))
             self.lbl_custom_hex.configure(text=i18n.t('custom_hex_title'))
             self.entry_custom_hex.configure(placeholder_text=i18n.t('custom_hex_placeholder'))
@@ -382,10 +386,8 @@ class SerialDetectorApp:
             self.card_best.config(text=f" {i18n.t('best_group_title')} ")
             self.lbl_log_group.config(text=f" {i18n.t('logs_group_title')} ")
 
-        # 刷新串口下拉框显示（防止“未检测到有效串口”保持旧语言）
         self.refresh_ports(silent_log=True)
 
-        # 刷新表格标题
         self.tree.heading("score", text=i18n.t('table_score'))
         self.tree.heading("param", text=i18n.t('table_param'))
         self.tree.heading("protocol", text=i18n.t('table_protocol'))
@@ -471,6 +473,16 @@ class SerialDetectorApp:
         else:
             bauds = ALL_BAUDRATES
 
+        # 数据位选择
+        databits = []
+        if not HAS_CTK or self.chk_dbit_8.get() == 1:
+            databits.append(8)
+        if not HAS_CTK or self.chk_dbit_7.get() == 1:
+            databits.append(7)
+        if not databits:
+            databits = [8, 7]
+
+        # 校验位选择
         parities = []
         if not HAS_CTK or self.chk_parity_n.get() == 1:
             parities.append('None (N)')
@@ -503,6 +515,7 @@ class SerialDetectorApp:
             mode=mode,
             baudrates=bauds,
             parities=parities,
+            databits=databits,
             custom_probe_hex=custom_hex,
             sample_time=sample_time,
             on_progress=self._on_progress,

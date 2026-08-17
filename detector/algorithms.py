@@ -76,7 +76,7 @@ def bytes_to_safe_ascii(data: bytes) -> str:
             res.append('.')
     return "".join(res)
 
-def evaluate_data_payload(data: bytes) -> Dict[str, Any]:
+def evaluate_data_payload(data: bytes, parity_key: str = 'None (N)') -> Dict[str, Any]:
     """多维度打分评估模型，返回特征分析结果与综合综合置信度得分 (0-100)"""
     if not data:
         return {
