@@ -259,7 +259,7 @@ class SerialDetectorApp:
             foreground="#e5e7eb",
             borderwidth=0,
             rowheight=30,
-            font=("Consolas", "Microsoft YaHei UI", 11),  # 修复表格中英文混排字体
+            font=("Microsoft YaHei UI", 11),
         )
         style.configure(
             "Treeview.Heading",
@@ -311,8 +311,8 @@ class SerialDetectorApp:
             self.lbl_sample = ctk.CTkLabel(left_preview, text=i18n.t('sample_title'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_sample.pack(anchor="w", padx=12, pady=(10, 6))
             
-            # 修复 Consolas 与 微软雅黑混排字体
-            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Consolas", "Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
+            # 修复 CustomTkinter 字体元组格式 ("FontFamily", size)
+            self.txt_sample = ctk.CTkTextbox(left_preview, font=("Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
             self.txt_sample.pack(fill="both", expand=True, padx=10, pady=(0, 10))
             
             right_log = ctk.CTkFrame(bottom_frame, corner_radius=8, fg_color="#2a2a2a")
@@ -321,8 +321,7 @@ class SerialDetectorApp:
             self.lbl_log = ctk.CTkLabel(right_log, text=i18n.t('log_title'), font=("Microsoft YaHei UI", 12, "bold"))
             self.lbl_log.pack(anchor="w", padx=12, pady=(10, 6))
             
-            # 修复 Consolas 与 微软雅黑混排字体（解决日志粗宋体不美观问题）
-            self.txt_log = ctk.CTkTextbox(right_log, font=("Consolas", "Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
+            self.txt_log = ctk.CTkTextbox(right_log, font=("Microsoft YaHei UI", 11), fg_color="#171717", corner_radius=6)
             self.txt_log.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         else:
             bottom_frame = ttk.Frame(self.main_frame)
