@@ -73,6 +73,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # 算法详情 i18n
         'detail_no_data': '未接收到有效数据字节',
         'detail_modbus': '通过 Modbus RTU 帧 CRC16 完整校验',
+        'detail_modbus_ascii': '通过 Modbus ASCII 帧 LRC 完整校验',
         'detail_nmea': '匹配到 NMEA0183 规整语句结构',
         'detail_at': '匹配到 AT 指令典型响应关键词 (OK/ERROR)',
         'detail_ascii': '高可读性 UTF-8 文本流',
@@ -145,6 +146,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # 算法详情 i18n
         'detail_no_data': 'No valid data bytes received',
         'detail_modbus': 'Passed Modbus RTU Frame CRC16 Check',
+        'detail_modbus_ascii': 'Passed Modbus ASCII Frame LRC Check',
         'detail_nmea': 'Matched NMEA0183 Sentence Structure',
         'detail_at': 'Matched AT Command Keywords (OK/ERROR)',
         'detail_ascii': 'High Readability UTF-8 Text Stream',

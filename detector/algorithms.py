@@ -34,6 +34,38 @@ def check_modbus_rtu_frame(data: bytes) -> bool:
                         return True
     return False
 
+def lrc_modbus_ascii(hex_bytes_str: str) -> int:
+    """计算 Modbus ASCII 协议的 LRC (Longitudinal Redundancy Check) 校验码"""
+    sum_val = 0
+    for i in range(0, len(hex_bytes_str), 2):
+        byte_val = int(hex_bytes_str[i:i+2], 16)
+        sum_val += byte_val
+    return ((~sum_val + 1) & 0xFF)
+
+def check_modbus_ascii_frame(data: bytes) -> bool:
+    """检查数据切片中是否包含有效符合 LRC 校验的 Modbus ASCII 响应帧 (:0103...\r\n)"""
+    if not data or b':' not in data:
+        return False
+        
+    try:
+        text = data.decode('ascii', errors='ignore')
+    except Exception:
+        return False
+
+    # 查找符合 :[0-9A-Fa-f]+\r\n 格式的语句
+    matches = re.findall(r':([0-9A-Fa-f]{8,})\r\n', text)
+    for hex_content in matches:
+        if len(hex_content) % 2 == 0 and len(hex_content) >= 6:
+            data_payload_hex = hex_content[:-2]
+            lrc_received_hex = hex_content[-2:].upper()
+            try:
+                lrc_calculated = lrc_modbus_ascii(data_payload_hex)
+                if f"{lrc_calculated:02X}" == lrc_received_hex:
+                    return True
+            except Exception:
+                continue
+    return False
+
 def check_nmea_sentence(data_str: str) -> bool:
     """检查是否符合 GPS/GNSS NMEA0183 协议规范 ($GP..., $GN...)"""
     pattern = r'\$(GP|GN|BD|GA|GL)[A-Z]{3},[^*]+\*[0-9A-Fa-f]{2}'
@@ -89,7 +121,8 @@ def evaluate_data_payload(data: bytes, parity_key: str = 'None (N)') -> Dict[str
         }
         
     ascii_score = calculate_ascii_score(data)
-    is_modbus = check_modbus_rtu_frame(data)
+    is_modbus_rtu = check_modbus_rtu_frame(data)
+    is_modbus_ascii = check_modbus_ascii_frame(data)
     
     text_content = ""
     is_utf8 = False
@@ -111,13 +144,19 @@ def evaluate_data_payload(data: bytes, parity_key: str = 'None (N)') -> Dict[str
     details_key = "detail_ascii_ratio"
     details_kwargs = {"ratio": ascii_score}
 
-    if is_modbus:
+    if is_modbus_rtu:
         final_score = 100.0
         protocol_type = "Modbus RTU (CRC16 Valid)"
         details_key = "detail_modbus"
         details_kwargs = {}
         safe_str = bytes_to_safe_ascii(data[:64])
         sample_text_display = f"{i18n.t('sample_modbus_tag')} {safe_str}"
+    elif is_modbus_ascii:
+        final_score = 100.0
+        protocol_type = "Modbus ASCII (LRC Valid)"
+        details_key = "detail_modbus_ascii"
+        details_kwargs = {}
+        sample_text_display = text_content[:128].replace('\r', '\\r').replace('\n', '\\n') if text_content else bytes_to_safe_ascii(data[:64])
     elif is_nmea:
         final_score = 98.0
         protocol_type = "NMEA 0183 (GPS)"

@@ -9,7 +9,8 @@ from .i18n import i18n
 DEFAULT_PROBES = [
     {"name": "Newline Probe", "data": b"\r\n"},
     {"name": "AT Probe", "data": b"AT\r\n"},
-    {"name": "Modbus Read Probe", "data": bytes([0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A])},
+    {"name": "Modbus ASCII Read Probe", "data": b":010300000001FB\r\n"},
+    {"name": "Modbus RTU Read Probe", "data": bytes([0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A])},
     {"name": "Query Symbol Probe", "data": b"?\r\n"},
 ]
 

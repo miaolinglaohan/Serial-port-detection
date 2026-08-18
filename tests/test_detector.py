@@ -21,6 +21,13 @@ class TestSerialDetector(unittest.TestCase):
         self.assertEqual(res['score'], 100.0)
         self.assertIn("Modbus RTU", res['protocol'])
 
+    def test_modbus_ascii_scoring(self):
+        # 纯 7-Bit Modbus ASCII 消息 (:0103020005F5\r\n)
+        ascii_frame = b":0103020005F5\r\n"
+        res = evaluate_data_payload(ascii_frame, parity_key='Odd (O)')
+        self.assertEqual(res['score'], 100.0)
+        self.assertIn("Modbus ASCII", res['protocol'])
+
     def test_nmea_scoring(self):
         nmea_bytes = b"$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\r\n"
         res = evaluate_data_payload(nmea_bytes)
