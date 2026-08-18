@@ -603,13 +603,23 @@ class SerialDetectorApp:
         best = sorted_res[0]
 
         details_str = i18n.t(best.get('details_key', 'detail_ascii_ratio'), **best.get('details_kwargs', {}))
+        param_str = f"{best['databits']}{best['parity'][0]}{best['stopbits']}"
 
-        title = i18n.t('best_card_title_found', baud=best['baudrate'], param=f"{best['databits']}{best['parity'][0]}{best['stopbits']}")
-        detail = i18n.t('best_card_detail_found', protocol=best['protocol'], score=f"{best['score']:.1f}", details=details_str)
+        if best.get('is_virtual_port'):
+            title = i18n.t('virtual_port_detected_title', baud=best['baudrate'], param=param_str)
+            detail = i18n.t('virtual_port_detected_detail', baud=best['baudrate'])
+            text_color = "#38bdf8"
+        else:
+            title = i18n.t('best_card_title_found', baud=best['baudrate'], param=param_str)
+            detail = i18n.t('best_card_detail_found', protocol=best['protocol'], score=f"{best['score']:.1f}", details=details_str)
+            text_color = "#4ade80"
 
         if HAS_CTK:
-            self.lbl_best_title.configure(text=title, text_color="#4ade80")
+            self.lbl_best_title.configure(text=title, text_color=text_color)
             self.lbl_best_detail.configure(text=detail)
+        else:
+            self.lbl_best_title.config(text=title)
+            self.lbl_best_detail.config(text=detail)
 
     def _on_table_select(self, event):
         selected_items = self.tree.selection()

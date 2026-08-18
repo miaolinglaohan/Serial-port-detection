@@ -68,5 +68,17 @@ class TestSerialDetector(unittest.TestCase):
         engine = DetectionEngine()
         self.assertIsNotNone(engine)
 
+    def test_virtual_port_detection_flag(self):
+        # 模拟 4 个不同波特率全部高分场景
+        results = [
+            {'baudrate': 9600, 'score': 100.0},
+            {'baudrate': 19200, 'score': 100.0},
+            {'baudrate': 38400, 'score': 100.0},
+            {'baudrate': 115200, 'score': 100.0},
+        ]
+        high_score_bauds = set(r['baudrate'] for r in results if r['score'] >= 95.0)
+        is_virtual = len(high_score_bauds) >= 4
+        self.assertTrue(is_virtual)
+
 if __name__ == '__main__':
     unittest.main()

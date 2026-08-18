@@ -190,6 +190,16 @@ class DetectionEngine:
                         found_high_score_in_baud = True
 
         results.sort(key=lambda x: x['score'], reverse=True)
+        
+        # 智能识别软件虚拟串口环境 (Virtual Serial Port Detection)
+        high_score_bauds = set(r['baudrate'] for r in results if r['score'] >= 95.0)
+        is_virtual_port = len(high_score_bauds) >= 4
+
+        if is_virtual_port:
+            log(i18n.t('log_virtual_port_notice'))
+            for r in results:
+                r['is_virtual_port'] = True
+
         log(i18n.t('log_complete_summary', count=len(results)))
 
         if on_complete:
